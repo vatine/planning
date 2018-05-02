@@ -49,6 +49,26 @@ func satisfiesDepMap(result []string, constraints map[string][]string) bool {
 	return true
 }
 
+func cmpDepMap(a, b map[string][]string) bool {
+	for name, aDeps := range a {
+		if bDeps, ok := b[name]; ok {
+			trace := map[string]int{}
+			for _, r := range aDeps {
+				trace[r] = 1
+			}
+			for _, r := range bDeps {
+				trace[r] += 1
+			}
+			for _, val := range trace {
+				if val != 2 {
+					return false
+				}
+			}
+		}
+	}
+	return true
+}
+
 func TestTopoSort(t *testing.T) {
 	req1 := map[string][]string{
 		"test3": {"test1", "test2"},
@@ -67,6 +87,7 @@ func TestTopoSort(t *testing.T) {
 		t.Errorf("toposort returned %s in error", seen1)
 	}
 
+	// TODO: add more test cases...
 	td := []map[string][]string {
 		{
 			"z": {"x", "y"},
@@ -84,5 +105,37 @@ func TestTopoSort(t *testing.T) {
 		if !satisfiesDepMap(seen, d) {
 			t.Errorf("Test %d, data %s is not correct", ix, seen)
 		}
+	}
+}
+
+func TestModelsToDepMap(t *testing.T) {
+	m1 := Model{
+		Name: "TestTop",
+		Outputs: []Output{{"test2", "blah", constant{1}}, {"test3", "blah", constant{1}}},
+	}
+	m2 := Model{
+		Name: "test2",
+		Outputs: []Output{{"test3", "blah", constant{1}}},
+	}
+	m3 := Model{
+		Name: "test3",
+	}
+
+	models := map[string]*Model{
+		"TestTop": &m1,
+		"test2": &m2,
+		"test3": &m3,
+	}
+
+	expected := map[string][]string{
+		"test3": {"TestTop", "test3"},
+		"test2": {"TestTop"},
+		"TestTop": {},
+	}
+
+	seen := modelsToDepMap(models)
+
+	if cmpDepMap(seen, expected) {
+		t.Errorf("derp, %s is not %s", seen, expected)
 	}
 }
