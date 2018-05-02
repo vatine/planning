@@ -14,20 +14,20 @@ If no value for a resource (CPU, RAM, replica count) is specified, they will def
 A model file is a list of models, one of which should have the same name as the file (without the ".yaml" prefix), this is the 'top-level' object whose inputs are set from the command line.
 
 Each model is on the form:
-name: <name of model>
-inputs:
- - <input1>
- ...
-outputs:
- - backend: <name of backend object>
-    input: <name of input we feed data to>
-    expression: <expression for the value>
-	...
-variables:
- - name: <variable name>
-    expression: <expression for the variable>
-	... 
-resources:
-  ram: <expression for RAM>
-  cpu: <expression for cores>
-  replicas: <expression for replica count>
+  name: <name of model>
+  inputs:
+   - <input1>
+   ...
+  outputs:
+   - backend: <name of backend object>
+      input: <name of input we feed data to>
+      expression: <expression for the value>
+  	...
+  variables:
+   - name: <variable name>
+      expression: <expression for the variable>
+  	... 
+  resources:
+    ram: <expression for RAM>
+    cpu: <expression for cores>
+    replicas: <expression for replica count>
