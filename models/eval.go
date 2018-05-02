@@ -27,6 +27,11 @@ type reference struct {
 	name string
 }
 
+
+func newVariable(name string, expr Expression) variable {
+	return variable{name, expr, 0.0, false}
+}
+
 func (c constant) Value(m Model) float64 {
 	return c.value
 }
