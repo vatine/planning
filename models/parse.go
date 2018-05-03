@@ -155,7 +155,6 @@ func parseInner(c <-chan token, level int) (Expression, error){
 				op.left = output[n - 2]
 				output = append(output[:n - 2], op)
 				ops = ops[:len(ops) - 1]
-				fmt.Printf("ops: %v\noutput: %v\n\n", ops, output)
 			}
 			return output[0], nil
 		case ref:
@@ -169,9 +168,7 @@ func parseInner(c <-chan token, level int) (Expression, error){
 		op.left = output[n - 2]
 		output = append(output[:n - 2], op)
 		ops = ops[:len(ops) - 1]
-		fmt.Printf("ops: %v\noutput: %v\n\n", ops, output)
 	}
-	fmt.Printf("ops: %v\noutput: %v\n\n", ops, output)
 	return output[0], nil
 }
 
