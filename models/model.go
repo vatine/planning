@@ -14,17 +14,19 @@ type Model struct {
 	Inputs    map[string]Input
 	Outputs   []Output
 	Variables map[string]variable
+	Resources map[string]Expression
 }
 
+type ExternalOutput struct {
+	Backend    string
+	Input      string
+	Expression string
+}
 // Serialization representation of a model
 type ExternalModel struct {
 	Name    string
 	Inputs  []string
-	Outputs []struct {
-		Backend    string
-		Input      string
-		Expression string
-	}
+	Outputs []ExternalOutput
 	Variables map[string]string
 	Resources map[string]string
 }
@@ -60,14 +62,17 @@ func New(name string) *Model {
 	m.Inputs = make(map[string]Input)
 	m.Outputs = []Output{}
 	m.Variables = make(map[string]variable)
+	m.Resources = make(map[string]Expression)
 
 	return &m
 }
 
 // Creates a new input on a model
 func (m *Model) NewInput(name string) {
+	fmt.Printf("Creating input %s\n", name)
 	i := Input{name: name}
 	i.values = []inputValue{}
+	m.Inputs[name] = i
 }
 
 // Creates a new output on a model
@@ -177,6 +182,13 @@ func ModelFromExternal(e ExternalModel) *Model {
 		expr, err := parse(e)
 		if err == nil {
 			m.Variables[v] = newVariable(v, expr)
+		}
+	}
+
+	for resource, expr := range e.Resources {
+		parsed, err := parse(expr)
+		if err == nil {
+			m.Resources[resource] = parsed
 		}
 	}
 

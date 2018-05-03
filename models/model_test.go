@@ -139,3 +139,108 @@ func TestModelsToDepMap(t *testing.T) {
 		t.Errorf("derp, %s is not %s", seen, expected)
 	}
 }
+
+func cmpModels(a, b *Model) string {
+	if a.Name != b.Name {
+		return "names differ"
+	}
+	inSeen := map[string]int{}
+	for aName, _ := range a.Inputs {
+		inSeen[aName] = 1
+	}
+	for bName, _ := range b.Inputs {
+		inSeen[bName] += 1
+	}
+	for name, val := range inSeen {
+		if val != 2 {
+			return "incommensurate input names"
+		}
+		aIn := a.Inputs[name]
+		bIn := b.Inputs[name]
+		if aIn.name != bIn.name || aIn.name != name {
+			return "input has different names"
+		}
+	}
+	for ix, aOut := range a.Outputs {
+		bOut := b.Outputs[ix]
+		if aOut.backend != bOut.backend {
+			return "non-matching output names"
+		}
+		if aOut.input != bOut.input {
+			return "non-matching inputs for output"
+		}
+		if !compareExpr(aOut.value, bOut.value) {
+			return "outputs have different expressions"
+		}
+	}
+	varSeen := map[string]int{}
+	for name, _ := range a.Variables {
+		varSeen[name] = 1
+	}
+	for name, _ := range b.Variables {
+		varSeen[name] += 1
+	}
+	for name, count := range varSeen {
+		if count != 2 {
+			return "incommensurate variables"
+		}
+		aVar := a.Variables[name]
+		bVar := b.Variables[name]
+		if aVar.name != name || aVar.name != bVar.name {
+			return "variable with incmopatible name"
+		}
+		if !compareExpr(aVar.expr, bVar.expr) {
+			return "variable have different expressions"
+		}
+	}
+
+	for _, name := range []string{"ram", "cpu", "replicas"} {
+		aVal, aOK := a.Resources[name]
+		bVal, bOK := b.Resources[name]
+
+		if aOK != bOK {
+			return "incommensurate resources"
+		}
+		if !compareExpr(aVal, bVal) {
+			return "resource expression differ"
+		}
+	}
+	
+	return ""
+}
+
+func TestModelFromExternal(t *testing.T) {
+	ext := ExternalModel{
+		Name: "test",
+		Inputs: []string{"qps"},
+		Outputs: []ExternalOutput{
+			{"bloop", "qps", "3"},
+		},
+		Variables: map[string]string{"foo": "3*qps+4"},
+		Resources: map[string]string{
+			"ram": "10",
+			"cpu": "0.2",
+			"replicas": "qps/200",
+		},
+	}
+	expected := Model{
+		Name: "test",
+		Inputs: map[string]Input{"qps": Input{name: "qps"},},
+		Outputs: []Output{{"bloop", "qps", constant{3}}},
+		Variables: map[string]variable{
+			"foo": variable{
+				name: "foo",
+				expr: operation{"+", operation{"*", constant{3}, reference{"qps"}}, constant{4}}}},
+		Resources: map[string]Expression{
+			"ram": constant{10},
+			"cpu": constant{0.2},
+			"replicas": operation{"/", reference{"qps"}, constant{200}},
+		},
+	}
+
+	seen := ModelFromExternal(ext)
+
+	if status := cmpModels(seen, &expected); status != "" {
+		t.Errorf("Model conversion failed, %s.\n%v\n%v", status, seen, &expected)
+	}
+}
