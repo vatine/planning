@@ -25,8 +25,8 @@ func TestConstants(t *testing.T) {
 func TestRefVariables(t *testing.T) {
 	model := Model{}
 	model.Variables = make(map[string]variable)
-	model.Variables["test1"] = variable{name: "test1", expr: constant{2.0}}
-	model.Variables["test2"] = variable{name: "test2", expr: constant{4.2}}
+	model.Variables["test1"] = variable{"test1", constant{2.0}, []float64{0.0}, []bool{false}}
+	model.Variables["test2"] = variable{"test2", constant{4.2}, []float64{0.0}, []bool{false}}
 
 	td := []struct{
 		r reference

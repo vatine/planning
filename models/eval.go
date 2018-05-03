@@ -9,8 +9,8 @@ type Expression interface {
 type variable struct {
 	name   string
 	expr   Expression
-	cache  float64
-	cached bool
+	cache  []float64
+	cached []bool
 }
 
 type operation struct {
@@ -29,7 +29,7 @@ type reference struct {
 
 
 func newVariable(name string, expr Expression) variable {
-	return variable{name, expr, 0.0, false}
+	return variable{name, expr, []float64{0.0}, []bool{false}}
 }
 
 func (c constant) Value(m Model) float64 {
@@ -57,11 +57,11 @@ func (i Input) Value(m Model) float64 {
 }
 
 func (v variable) Value(m Model) float64 {
-	if !v.cached {
-		v.cache = v.expr.Value(m)
-		v.cached = true
+	if !v.cached[0] {
+		v.cache[0] = v.expr.Value(m)
+		v.cached[0] = true
 	}
-	return v.cache
+	return v.cache[0]
 }
 
 func (v operation) Value(m Model) float64 {
