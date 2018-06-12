@@ -3,9 +3,13 @@
 package models
 
 import (
+	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"math"
 
-	// "gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v2"
 )
 
 // "Internal" representation of a model
@@ -69,7 +73,6 @@ func New(name string) *Model {
 
 // Creates a new input on a model
 func (m *Model) NewInput(name string) {
-	fmt.Printf("Creating input %s\n", name)
 	i := Input{name: name}
 	i.values = []inputValue{}
 	m.Inputs[name] = i
@@ -87,6 +90,7 @@ func (m *Model) SetInput(iName, from string, v float64) {
 	if ok {
 		iv := inputValue{source: from, value: v}
 		input.values = append(input.values, iv)
+		m.Inputs[iName] = input
 	}
 }
 
@@ -115,7 +119,7 @@ func noDeps(reqs []string, used map[string]bool) bool {
 
 // Topologically sorts a dependency tree. Expects a map keyed by model
 // name, with a list of model names that a specific module depends on.
-func topoSort(deps map[string][]string) []string {
+func topoSort(deps map[string][]string) ([]string, error) {
 	used := make(map[string]bool)
 	rv := []string{}
 
@@ -126,6 +130,9 @@ func topoSort(deps map[string][]string) []string {
 				possibles = append(possibles, candidate)
 			}
 		}
+		if len(possibles) == 0 {
+			return nil, errors.New("No available candidates in topoSort")
+		}
 		for _, possible := range possibles {
 			if !used[possible] {
 				rv = append(rv, possible)
@@ -134,7 +141,7 @@ func topoSort(deps map[string][]string) []string {
 		}
 	}
 
-	return rv
+	return rv, nil
 }
 
 // Extracts a dependency map from a map of models.
@@ -151,13 +158,17 @@ func modelsToDepMap(models map[string]*Model) map[string][]string {
 
 // Returns a slice of models, in the order they need to be evaluated
 // to propagate values properly.
-func ModelOrder(models map[string]*Model) []*Model {
+func ModelOrder(models map[string]*Model) ([]*Model, error) {
 	deps := modelsToDepMap(models)
 	rv := []*Model{}
-	for _, name := range topoSort(deps) {
+	sorted, err := topoSort(deps)
+	if err != nil {
+		return nil, err
+	}
+	for _, name := range sorted {
 		rv = append(rv, models[name])
 	}
-	return rv
+	return rv, nil
 }
 
 func ModelFromExternal(e ExternalModel) *Model {
@@ -171,7 +182,7 @@ func ModelFromExternal(e ExternalModel) *Model {
 		expression := output.Expression
 
 		if backend != "" && input != "" && expression != "" {
-			expr, err := parse(expression)
+			expr, err := Parse(expression)
 			if err == nil {
 				m.NewOutput(backend, input, expr)
 			}
@@ -179,18 +190,112 @@ func ModelFromExternal(e ExternalModel) *Model {
 	}
 
 	for v, e := range e.Variables {
-		expr, err := parse(e)
+		expr, err := Parse(e)
 		if err == nil {
 			m.Variables[v] = newVariable(v, expr)
 		}
 	}
 
 	for resource, expr := range e.Resources {
-		parsed, err := parse(expr)
+		parsed, err := Parse(expr)
 		if err == nil {
 			m.Resources[resource] = parsed
 		}
 	}
 
 	return m
+}
+
+func BuildExternal(data []byte) (ExternalModel, error) {
+	rv := ExternalModel{}
+	err := yaml.Unmarshal(data, &rv)
+	return rv, err
+}
+
+func LoadExternalModels(r io.Reader) ([]ExternalModel, error) {
+	rv := []ExternalModel{}
+	data, readErr := ioutil.ReadAll(r)
+	if readErr != nil {
+		return nil, readErr
+	}
+	err := yaml.Unmarshal(data, &rv)
+	return rv, err
+}
+
+func Propagate(models map[string]*Model, topLevel string, inputs map[string]Expression) error {
+	top, ok := models[topLevel]
+	if !ok {
+		return errors.New(fmt.Sprintf("Top-level model %s not found."))
+	}
+
+	for name, value := range inputs {
+		top.SetInput(name, "external", value.Value(*top))
+	}
+
+	sorted, sortErr := ModelOrder(models)
+	if sortErr != nil {
+		return sortErr
+	}
+	for _, model := range sorted {
+		for _, val := range model.Variables {
+			_ = val.Value(*model)
+		}
+		model.PropagateOutputs()
+	}
+	
+	return nil
+}
+
+func PrintModel( w io.Writer, m *Model) {
+	fmt.Fprintf(w, "- name: %s\n", m.Name)
+	fmt.Fprintf(w, "  resources:\n")
+	if ram, rOK := m.Resources["ram"]; rOK {
+		fmt.Fprintf(w, "    ram: %f # per replica\n", ram.Value(*m))
+	}
+	if cores, cOK := m.Resources["cpu"]; cOK {
+		fmt.Fprintf(w, "    cpu: %f # per replica\n", cores.Value(*m))
+	}
+	replicas, repOK := m.Resources["replicas"]
+	if !repOK {
+		replicas = constant{1.0}
+	}
+	r := math.Ceil(replicas.Value(*m))
+	fmt.Fprint(w, "    replicas: %.0f\n", r)
+}
+
+func allRAM(m *Model) float64 {
+	ram, ok := m.Resources["ram"]
+	if ok {
+		r, ok2 := m.Resources["replicas"]
+		if !ok2 {
+			r = constant{1.0}
+		}
+		replicas := math.Ceil(r.Value(*m))
+		return ram.Value(*m) * replicas
+	}
+	return 0
+}
+
+func allCPU(m *Model) float64 {
+	cpu, ok := m.Resources["cpu"]
+	if ok {
+		r, ok2 := m.Resources["replicas"]
+		if !ok2 {
+			r = constant{1.0}
+		}
+		replicas := math.Ceil(r.Value(*m))
+		return cpu.Value(*m) * replicas
+	}
+	return 0
+}
+
+func PrintModels(w io.Writer, models map[string]*Model) {
+	ram := 0.0
+	cpu := 0.0
+	for _, model := range models {
+		ram += allRAM(model)
+		cpu += allCPU(model)
+		PrintModel(w, model)
+	}
+	fmt.Fprintf(w, "\ntotals:\n ram: %f\n cpu: %f", ram, cpu)
 }

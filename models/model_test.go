@@ -82,27 +82,40 @@ func TestTopoSort(t *testing.T) {
 		t.Errorf("satisfiesDepMap is teh bork.")
 	}
 
-	seen1 := topoSort(req1)
+	seen1, _ := topoSort(req1)
 	if !satisfiesDepMap(seen1, req1) {
 		t.Errorf("toposort returned %s in error", seen1)
 	}
 
 	// TODO: add more test cases...
-	td := []map[string][]string {
+	td := []struct {
+		m map[string][]string
+		e bool
+	}{
 		{
-			"z": {"x", "y"},
-			"x": {"a"},
-			"y": {"w"},
-			"w": {"b", "c"},
-			"c": {"a", "b"},
-			"b": {"a"},
-			"a": {},
+			map[string][]string{
+				"z": {"x", "y"},
+				"x": {"a"},
+				"y": {"w"},
+				"w": {"b", "c"},
+				"c": {"a", "b"},
+				"b": {"a"},
+				"a": {},
+			},
+			false,
+		},
+		{
+			map[string][]string{"a": {"b"}, "b": {"a"}},
+			true,
 		},
 	}
 
 	for ix, d := range td {
-		seen := topoSort(d)
-		if !satisfiesDepMap(seen, d) {
+		seen, err := topoSort(d.m)
+		if (err != nil) !=  d.e{
+			t.Errorf("Incorrect error, expected it to be %s, it was %s", d.e, !d.e)
+		}
+		if !satisfiesDepMap(seen, d.m) {
 			t.Errorf("Test %d, data %s is not correct", ix, seen)
 		}
 	}
@@ -242,5 +255,30 @@ func TestModelFromExternal(t *testing.T) {
 
 	if status := cmpModels(seen, &expected); status != "" {
 		t.Errorf("Model conversion failed, %s.\n%v\n%v", status, seen, &expected)
+	}
+}
+
+func TestUnmarshal(t *testing.T) {
+	input := `name: test
+inputs:
+ - qps
+ - foons
+outputs:
+ - backend: bob
+   input: qps
+   expression: 2*qps
+ - backend: alice
+   input: foons
+   expression: foons/2
+variables:
+  combined: foons+qps
+resources:
+  ram: 64
+  cpu: 1.3
+  replicas: combined / 3
+`
+	_, err := BuildExternal([]byte(input))
+	if err != nil {
+		t.Errorf("Unmarshal saw an error, %s")
 	}
 }
