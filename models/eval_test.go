@@ -22,6 +22,31 @@ func TestConstants(t *testing.T) {
 	}
 }
 	
+func TestRefInputs(t *testing.T) {
+	model := Model{}
+	model.Inputs = map[string]Input{}
+	model.NewInput("in1")
+	model.NewInput("in2")
+	model.SetInput("in1", "test", 1.0)
+	model.SetInput("in2", "test", 2.0)
+
+	td := []struct {
+		expr Expression
+		expt float64
+	}{
+		{reference{"in1"}, 1.0},
+		{reference{"in2"}, 2.0},
+		{operation{"+", reference{"in1"}, reference{"in2"}}, 3.0},
+	}
+
+	for _, d := range td {
+		seen := d.expr.Value(model)
+		if seen != d.expt {
+			t.Errorf("UNexpected input test value, saw %f, expected %f", seen, d.expt)
+		}
+	}
+}
+
 func TestRefVariables(t *testing.T) {
 	model := Model{}
 	model.Variables = make(map[string]variable)
@@ -41,6 +66,12 @@ func TestRefVariables(t *testing.T) {
 		expected := d.e
 		if seen != expected {
 			t.Errorf("Unexpected referenced value, saw %f, expected %f", seen, expected)
+		}
+	}
+
+	for name, val := range model.Variables {
+		if !val.cached[0] {
+			t.Errorf("Variable %s not cached", name)
 		}
 	}
 }
