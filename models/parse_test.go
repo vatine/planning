@@ -111,7 +111,7 @@ func TestParser(t *testing.T) {
 	}
 
 	for ix, d := range td {
-		seen, e := parse(d.s)
+		seen, e := Parse(d.s)
 		if e != nil {
 			if !d.err {
 				t.Errorf("test %d, did not expect error, saw %s", ix, e)

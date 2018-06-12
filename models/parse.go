@@ -111,7 +111,7 @@ func tokenReference(s string, start int) (int, token) {
 	return len(s), token{ref, s[start:len(s)]}
 }
 
-func parse(s string) (Expression, error) {
+func Parse(s string) (Expression, error) {
 	return parseInner(tokenize(s), 0)
 }
 
