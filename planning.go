@@ -36,7 +36,10 @@ func main () {
 			tmp := strings.Split(arg, "=")
 			name := tmp[0]
 			value, err := models.Parse(tmp[1])
+				
 			if err != nil {
+				fmt.Println("Failed to parse %s\n%s\n", tmp[1], err)
+			} else {
 				inputs[name] = value
 			}
 		} else {
@@ -64,5 +67,10 @@ func main () {
 	for _, m := range usageModel {
 		usage[m.Name] = models.ModelFromExternal(m)
 	}
-	models.Propagate(usage, base, inputs)
+	propagateErr := models.Propagate(usage, base, inputs)
+	if propagateErr != nil {
+		fmt.Printf("Failed to propagate, %s\nModel hash is %v\n", propagateErr, usage)
+		return
+	}
+	models.PrintModels(os.Stdout, usage)
 }
