@@ -15,20 +15,20 @@ A model file is a list of models, one of which should have the same name as the 
 
 Each model is on the form:
 
-`name: <name of model>
-inputs:
- - <input1>
- ...
-outputs:
- - backend: <name of backend object>
-    input: <name of input we feed data to>
-    expression: <expression for the value>
-	...
-	variables:
-	  <varname>: <expression>
-	  ... 
-resources:
-  ram: <expression for RAM>
-  cpu: <expression for cores>
-  replicas: <expression for replica count>
-`
+> name: <name of model>
+> inputs:
+>  - <input1>
+>  ...
+> outputs:
+>  - backend: <name of backend object>
+>     input: <name of input we feed data to>
+>     expression: <expression for the value>
+> 	...
+> 	variables:
+> 	  <varname>: <expression>
+> 	  ... 
+> resources:
+>   ram: <expression for RAM>
+>   cpu: <expression for cores>
+>   replicas: <expression for replica count>
+
