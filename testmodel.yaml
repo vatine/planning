@@ -1,0 +1,9 @@
+- name: testmodel
+  inputs:
+   - qps
+  variables:
+   qps_per_replica: 500
+  resources:
+   ram: 5*1024*1024
+   cpu: 0.75
+   replicas: qps/qps_per_replica
