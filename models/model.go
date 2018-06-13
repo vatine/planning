@@ -260,7 +260,7 @@ func PrintModel( w io.Writer, m *Model) {
 		replicas = constant{1.0}
 	}
 	r := math.Ceil(replicas.Value(*m))
-	fmt.Fprint(w, "    replicas: %.0f\n", r)
+	fmt.Fprintf(w, "    replicas: %.0f\n", r)
 }
 
 func allRAM(m *Model) float64 {
@@ -297,5 +297,5 @@ func PrintModels(w io.Writer, models map[string]*Model) {
 		cpu += allCPU(model)
 		PrintModel(w, model)
 	}
-	fmt.Fprintf(w, "\ntotals:\n ram: %f\n cpu: %f", ram, cpu)
+	fmt.Fprintf(w, "\ntotals:\n ram: %f\n cpu: %f\n", ram, cpu)
 }
