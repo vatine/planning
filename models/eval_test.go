@@ -22,6 +22,26 @@ func TestConstants(t *testing.T) {
 	}
 }
 	
+func TestUploadBug(t *testing.T) {
+	model := Model{}
+	model.Inputs = map[string]Input{}
+	model.NewInput("qps")
+	model.SetInput("qps", "test", 300.0)
+	model.Variables = make(map[string]variable)
+	model.Resources = make(map[string]Expression)
+	model.Variables["uploads_per_replica"] = newVariable("uploads_per_replica", constant{30.0})
+	model.Variables["seconds_per_upload"] = newVariable("seconds_per_upload", constant{90.0})
+	model.Variables["simultaneous_uploads"] = newVariable("simultaneous_uploads", operation{"*", reference{"qps"}, reference{"seconds_per_upload"}})
+	model.Resources["replicas"] = operation{"/", reference{"simultaneous_uploads"}, reference{"uploads_per_replica"}}
+
+	replicas := model.Resources["replicas"].Value(model)
+
+	if replicas != 900.0 {
+		t.Errorf("Saw %f replicas, expected 900", replicas)
+	}
+	
+}
+
 func TestRefInputs(t *testing.T) {
 	model := Model{}
 	model.Inputs = map[string]Input{}
