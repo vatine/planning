@@ -96,13 +96,13 @@ func (m *Model) SetInput(iName, from string, v float64) {
 
 // Ensures that all declared outputs of a model are properly fed to
 // the models that should have the data.
-func (m *Model) PropagateOutputs() {
+func (m *Model) PropagateOutputs(models map[string]*Model) {
 	for _, o := range m.Outputs {
 		dst, ok := models[o.backend]
 		if ok {
 			dst.SetInput(o.input, m.Name, o.value.Value(*m))
 		} else {
-			fmt.Printf("<model %s> No model named %s\n", m.Name, o.backend)
+			fmt.Printf("PropoagateOuputs: <model %s> No model named %s (%v)\n", m.Name, o.backend, models)
 		}
 	}
 }
@@ -147,6 +147,9 @@ func topoSort(deps map[string][]string) ([]string, error) {
 // Extracts a dependency map from a map of models.
 func modelsToDepMap(models map[string]*Model) map[string][]string {
 	rv := make(map[string][]string)
+	for name, _ := range models {
+		rv[name] = []string{}
+	}
 	for name, m := range models {
 		for _, o := range m.Outputs {
 			rv[o.backend] = append(rv[o.backend], name)
@@ -225,7 +228,7 @@ func LoadExternalModels(r io.Reader) ([]ExternalModel, error) {
 func Propagate(models map[string]*Model, topLevel string, inputs map[string]Expression) error {
 	top, ok := models[topLevel]
 	if !ok {
-		return errors.New(fmt.Sprintf("Top-level model %s not found."))
+		return errors.New(fmt.Sprintf("Top-level model %s not found.", topLevel))
 	}
 
 	for name, value := range inputs {
@@ -240,7 +243,7 @@ func Propagate(models map[string]*Model, topLevel string, inputs map[string]Expr
 		for _, val := range model.Variables {
 			_ = val.Value(*model)
 		}
-		model.PropagateOutputs()
+		model.PropagateOutputs(models)
 	}
 	
 	return nil
@@ -248,6 +251,15 @@ func Propagate(models map[string]*Model, topLevel string, inputs map[string]Expr
 
 func PrintModel( w io.Writer, m *Model) {
 	fmt.Fprintf(w, "- name: %s\n", m.Name)
+	if len(m.Inputs) > 0 {
+		fmt.Fprintf(w, "  inputs:\n")
+		for name, input := range m.Inputs {
+			fmt.Fprintf(w, "    %s:\n", name)
+			for _, iv := range input.values {
+				fmt.Fprintf(w, "      %f # %s\n", iv.value, iv.source)
+			}
+		}
+	}
 	fmt.Fprintf(w, "  resources:\n")
 	if ram, rOK := m.Resources["ram"]; rOK {
 		fmt.Fprintf(w, "    ram: %f # per replica\n", ram.Value(*m))
