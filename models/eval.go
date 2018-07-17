@@ -2,6 +2,10 @@
 
 package models
 
+import (
+	"fmt"
+)
+
 type Expression interface {
 	Value(Model) float64
 }
@@ -45,6 +49,7 @@ func (r reference) Value(m Model) float64 {
 	if ok2 {
 		return v2.Value(m)
 	}
+	fmt.Printf("failing to evaluate reference %s in model %s\n", r.name, m.Name)
 	return -100000.0
 }
 
