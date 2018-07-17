@@ -26,7 +26,7 @@ func TestNoDeps(t *testing.T) {
 		seen := noDeps(d.reqs, used)
 		expected := d.e
 		if seen != expected {
-			t.Errorf("Saw %s, expected %s", seen, expected)
+			t.Errorf("Saw %v, expected %v", seen, expected)
 		}
 	}
 }
@@ -113,7 +113,7 @@ func TestTopoSort(t *testing.T) {
 	for ix, d := range td {
 		seen, err := topoSort(d.m)
 		if (err != nil) !=  d.e{
-			t.Errorf("Incorrect error, expected it to be %s, it was %s", d.e, !d.e)
+			t.Errorf("Incorrect error, expected it to be %v, it was %v", d.e, !d.e)
 		}
 		if !satisfiesDepMap(seen, d.m) {
 			t.Errorf("Test %d, data %s is not correct", ix, seen)
@@ -279,6 +279,6 @@ resources:
 `
 	_, err := BuildExternal([]byte(input))
 	if err != nil {
-		t.Errorf("Unmarshal saw an error, %s")
+		t.Errorf("Unmarshal saw an error, %s", err)
 	}
 }

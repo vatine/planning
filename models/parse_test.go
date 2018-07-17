@@ -62,7 +62,7 @@ func TestTokenizer(t *testing.T) {
 		for tIx, expected := range d.tokens {
 			seen := <- c
 			if !tokenEqual(seen, expected) {
-				t.Errorf("test %d, pos %d, Expected %t, saw %t", ix, tIx, seen, expected)
+				t.Errorf("test %d, pos %d, Expected %v, saw %v", ix, tIx, seen, expected)
 			}
 		}
 	}
