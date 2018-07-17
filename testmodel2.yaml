@@ -1,0 +1,42 @@
+- name: testmodel2
+  inputs:
+   - qps
+  variables:
+   qps_per_replica: 5000
+   lightweight_qps: qps * 0.99
+   heavyweight_qps: qps - lightweight_qps
+  resources:
+   ram: 5*1024*1024
+   cpu: 0.75
+   replicas: qps/qps_per_replica
+  outputs:
+   - backend: frontend
+     input: qps
+     expression: lightweight_qps
+   - backend: uploads
+     input: qps
+     expression: heavyweight_qps
+
+- name: frontend
+  inputs:
+   - qps
+  variables:
+   qps_per_replica: 800
+  resources:
+   ram: 500 * 1024 * 1024
+   cpu: 1.0
+   replicas: qps/qps_per_replica
+
+- name: uploads
+  inputs:
+   - qps
+  variables:
+    uploads_per_replica: 100
+    seconds_per_upload: 25
+    simultaneous_uploads: qps * seconds_per_upload
+  resources:
+    ram: 1 * 1024 * 1024 * 1024
+    cpu: 1.8
+    replicas: simultaneous_uploads / uploads_per_replica
+
+  
