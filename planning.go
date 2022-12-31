@@ -21,12 +21,12 @@ func help(prog string) {
 	fmt.Println("\t replicas: <expression>")
 }
 
-func main () {
+func main() {
 	inputs := make(map[string]models.Expression)
 	usage := make(map[string]*models.Model)
 	var filename string
 
-	for _, arg := range(os.Args[1:]) {
+	for _, arg := range os.Args[1:] {
 		if arg == "help" {
 			help(path.Base(os.Args[0]))
 			return
@@ -36,9 +36,9 @@ func main () {
 			tmp := strings.Split(arg, "=")
 			name := tmp[0]
 			value, err := models.Parse(tmp[1])
-				
+
 			if err != nil {
-				fmt.Println("Failed to parse %s\n%s\n", tmp[1], err)
+				fmt.Printf("Failed to parse %s\n%s\n", tmp[1], err)
 			} else {
 				inputs[name] = value
 			}
